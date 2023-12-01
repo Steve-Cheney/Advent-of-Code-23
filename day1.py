@@ -20,6 +20,19 @@ a1b2c3d4e5f
 treb7uchet
 In this example, the calibration values of these four lines are 12, 38, 15, and 77. Adding these together produces 142.
 
+--- Part Two ---
+Your calculation isn't quite right. It looks like some of the digits are actually spelled out with letters: one, two, three, four, five, six, seven, eight, and nine also count as valid "digits".
+
+Equipped with this new information, you now need to find the real first and last digit on each line. For example:
+
+two1nine
+eightwothree
+abcone2threexyz
+xtwone3four
+4nineeightseven2
+zoneight234
+7pqrstsixteen
+In this example, the calibration values are 29, 83, 13, 24, 42, 14, and 76. Adding these together produces 281.
 """
 import sys
 import re
@@ -36,8 +49,50 @@ def part1(file):
         sum += num
     return sum
 
-        
+NUM_DICT = {
+    'one':'1',
+    'two':'2',
+    'three':'3',
+    'four':'4',
+    'five':'5',
+    'six':'6',
+    'seven':'7',
+    'eight':'8',
+    'nine':'9'
+}    
 
+
+
+def part2(file):
+    @staticmethod
+    def find_starting_indices(input_string, num_dict):
+        result_dict = {}
+        
+        for key, value in num_dict.items():
+            indices = [i for i in range(len(input_string)) if input_string.startswith(key, i)]
+            for index in indices:
+                result_dict[index] = value
+        
+        return result_dict
+
+    f = open(file, "r")
+    sum = 0
+    for line in f.readlines():
+        int_dict = {}
+        for i, char in enumerate(line):
+            if char.isdigit():
+                int_dict[i] = char
+        
+        str_dict = find_starting_indices(line, NUM_DICT)
+        int_dict.update(str_dict)
+
+        sorted_keys = sorted(int_dict.keys())
+        first_key = sorted_keys[0]
+        last_key = sorted_keys[-1]
+        
+        num = int(int_dict[first_key] + int_dict[last_key])
+        sum += num
+    return sum
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or len(sys.argv) > 2:
@@ -45,4 +100,6 @@ if __name__ == "__main__":
         sys.exit(1)
     file = sys.argv[1]
     output = part1(file)
-    print(output)
+    print("Part 1 sum:", output)
+    output2 = part2(file)
+    print("Part 2 sum:", output2)
