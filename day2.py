@@ -26,6 +26,8 @@ In the example above, games 1, 2, and 5 would have been possible if the bag had 
 Determine which games would have been possible if the bag had been loaded with only 12 red cubes, 13 green cubes, and 14 blue cubes. What is the sum of the IDs of those games?
 """
 import sys
+from collections import defaultdict
+from functools import reduce
 
 bag = {
     'red': 12,
@@ -63,8 +65,22 @@ def part1(file):
                     if round[color] > bag[color]: game_is_poss = False 
         if game_is_poss: poss_games.append(gid)
     return sum(poss_games)
-            
 
+def def_value(): 
+    return 0
+
+def part2(file):
+    f = open(file, "r")
+    result = 0
+    for line in f.readlines():
+        gid, game = parseLine(line)
+        min_colors = defaultdict(def_value)
+        for round in game:
+            for color in round:
+                if round[color] > min_colors[color]:
+                    min_colors[color] = round[color]
+        result += reduce(lambda x, y: x*y, min_colors.values())
+    return result
     
 
 
@@ -76,5 +92,5 @@ if __name__ == "__main__":
     file = sys.argv[1]
     output = part1(file)
     print("Part 1 sum:", output)
-    #output2 = part2(file)
-    #print("Part 2 sum:", output2)
+    output2 = part2(file)
+    print("Part 2 sum:", output2)
