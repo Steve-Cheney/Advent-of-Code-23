@@ -93,6 +93,20 @@ Seed 13, soil 13, fertilizer 52, water 41, light 34, temperature 34, humidity 35
 So, the lowest location number in this example is 35.
 
 What is the lowest location number that corresponds to any of the initial seed numbers?
+
+--- Part Two ---
+Everyone will starve if you only plant such a small number of seeds. Re-reading the almanac, it looks like the seeds: line actually describes ranges of seed numbers.
+
+The values on the initial seeds: line come in pairs. Within each pair, the first value is the start of the range and the second value is the length of the range. So, in the first line of the example above:
+
+seeds: 79 14 55 13
+This line describes two ranges of seed numbers to be planted in the garden. The first range starts with seed number 79 and contains 14 values: 79, 80, ..., 91, 92. The second range starts with seed number 55 and contains 13 values: 55, 56, ..., 66, 67.
+
+Now, rather than considering four seed numbers, you need to consider a total of 27 seed numbers.
+
+In the above example, the lowest location number can be obtained from seed number 82, which corresponds to soil 84, fertilizer 84, water 84, light 77, temperature 45, humidity 46, and location 46. So, the lowest location number is 46.
+
+Consider all of the initial seed numbers listed in the ranges on the first line of the almanac. What is the lowest location number that corresponds to any of the initial seed numbers?
 """
 
 import sys
@@ -148,8 +162,136 @@ def find_lowest_location(seed_numbers, maps):
 
 def part1(file):
     seeds, map = parseFile(file)
-    print(find_lowest_location(seeds, map))
-    return
+    return find_lowest_location(seeds, map)
+    
+
+def create_tuples_from_list(numbers):
+    # Check if the list has an odd number of elements
+    if len(numbers) % 2 != 0:
+        raise ValueError("Input list must have an even number of elements")
+
+    # Create tuples of every two items in the list
+    result = [(numbers[i], numbers[i + 1]) for i in range(0, len(numbers), 2)]
+
+    return result
+
+def convert_number2(seed, conversion_maps):
+    for conversion_map in conversion_maps:
+        for mapping in conversion_map:
+            dest_start, source_start, length = mapping['dest'], mapping['source'], mapping['length']
+            if source_start <= seed < source_start + length:
+                return dest_start + (seed - source_start)
+    return seed
+
+def find_lowest_location_for_ranges(seed_ranges, conversion_maps):
+    converted_numbers = []
+    for seed_range in seed_ranges:
+        print('checking seed', seed_range)
+        current_seed_range = range(seed_range[0], seed_range[0] + seed_range[1])
+        converted_numbers.extend([convert_number2(seed, conversion_maps) for seed in current_seed_range])
+    return min(converted_numbers)
+
+
+
+def build_mapping_dict2(conversion_map):
+    mapping_dict = {}
+    if isinstance(conversion_map[0], dict):
+        # Handle the old format (list of dictionaries)
+        for mapping in conversion_map:
+            print('old', mapping)
+            dest_start, source_start, length = mapping['dest'], mapping['source'], mapping['length']
+            mapping_dict.update({i: dest_start + (i - source_start) for i in range(source_start, source_start + length)})
+    else:
+        # Handle the new format (list of list of dictionaries)
+        for sub_map in conversion_map:
+            for mapping in sub_map:
+                print('new', mapping)
+                dest_start, source_start, length = mapping['dest'], mapping['source'], mapping['length']
+                mapping_dict.update({i: dest_start + (i - source_start) for i in range(source_start, source_start + length)})
+    return mapping_dict
+
+def build_mapping_dict(conversion_map):
+    mapping_dict = {}
+    for mapping in conversion_map:
+        dest, source, length = mapping['dest'], mapping['source'], mapping['length']
+        mapping_dict[source] = dest
+    return mapping_dict
+
+
+def merge_mapping_dicts(mapping_dicts):
+    merged_dict = {}
+    for mapping_dict in mapping_dicts:
+        merged_dict.update(mapping_dict)
+    return merged_dict
+
+def fastfind(seed_ranges, conversion_maps):
+    mapping_dicts = [build_mapping_dict(conversion_map) for conversion_map in conversion_maps]
+    merged_mapping_dict = merge_mapping_dicts(mapping_dicts)
+    
+    converted_numbers = [merged_mapping_dict.get(seed, seed) for seed_range in seed_ranges for seed in range(seed_range[0], seed_range[0] + seed_range[1])]
+    
+    return min(converted_numbers)
+
+
+
+class SegmentTree:
+    def __init__(self, start, end, value):
+        self.start = start
+        self.end = end
+        self.value = value
+        self.left = None
+        self.right = None
+
+def build_segment_tree(mapping_dict, start, end):
+    if start == end:
+        return SegmentTree(start, end, mapping_dict[start])
+
+    mid = (start + end) // 2
+    left = build_segment_tree(mapping_dict, start, mid)
+    right = build_segment_tree(mapping_dict, mid + 1, end)
+
+    node = SegmentTree(start, end, min(left.value, right.value))
+    node.left = left
+    node.right = right
+
+    return node
+
+def query_segment_tree(node, start, end):
+    if node.start == start and node.end == end:
+        return node.value
+
+    mid = (node.start + node.end) // 2
+    if end <= mid:
+        return query_segment_tree(node.left, start, end)
+    elif start > mid:
+        return query_segment_tree(node.right, start, end)
+    else:
+        return min(query_segment_tree(node.left, start, mid), query_segment_tree(node.right, mid + 1, end))
+
+def fasterfind(seed_ranges, conversion_maps):
+    mapping_dicts = [build_mapping_dict(conversion_map) for conversion_map in conversion_maps]
+
+    for mapping_dict in mapping_dicts:
+        sorted_keys = sorted(mapping_dict.keys())
+        segment_tree = build_segment_tree(mapping_dict, sorted_keys[0], sorted_keys[-1])
+
+        converted_numbers = set()
+        for seed_range in seed_ranges:
+            start, length = seed_range
+            dest_start = query_segment_tree(segment_tree, start, start + length - 1)
+            converted_numbers.update(range(dest_start, dest_start + length))
+
+        return min(converted_numbers)
+
+
+
+def part2(file):
+    seeds, map = parseFile(file)
+    seeds = create_tuples_from_list(seeds)
+    #print(seeds)
+    #print(map)
+    return fastfind(seeds, map)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or len(sys.argv) > 2:
@@ -157,6 +299,6 @@ if __name__ == "__main__":
         sys.exit(1)
     file = sys.argv[1]
     output = part1(file)
-    print("Part 1 sum:", output)
-    #output2 = part2(file)
-    #print("Part 2 sum:", output2)
+    print("Part 1 lowest:", output)
+    output2 = part2(file)
+    print("Part 2 sum:", output2)
