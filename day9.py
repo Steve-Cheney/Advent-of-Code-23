@@ -97,11 +97,39 @@ def predictVal(report):
     prediction = list_of_diffs[-1][-1] + report[-1]
     return prediction
 
+def predictVal2(report):
+    list_of_diffs = []
+    all_zero = False
+    curr = report[::-1]  # Reverse the input list
+    while not all_zero:
+        next_val = getDiffs(curr)
+        list_of_diffs.append(next_val)
+        curr = next_val
+        all_zero = all(value == 0 for value in curr)
+
+    list_of_diffs = list(reversed(list_of_diffs))
+
+    for i, diffs in enumerate(list_of_diffs):
+        if i < len(list_of_diffs) - 1:
+            list_of_diffs[i + 1].append(diffs[-1] + list_of_diffs[i + 1][-1])
+
+    prediction = list_of_diffs[-1][-1] + report[0]
+    return prediction
+
+
 def part1(file):
     reports = parseFile(file)
     answer = 0
     for report in reports:
         answer += predictVal(report)
+    return answer
+
+def part2(file):
+    reports = parseFile(file)
+    answer = 0
+    for report in reports:
+        #predictVal2(report)
+        answer += predictVal2(report)
     return answer
 
 if __name__ == "__main__":
@@ -111,5 +139,5 @@ if __name__ == "__main__":
     file = sys.argv[1]
     output = part1(file)
     print("Part 1 answer:", output)
-    #output2 = part2(file)
-    #print("Part 2 answer:", output2)
+    output2 = part2(file)
+    print("Part 2 answer:", output2)
